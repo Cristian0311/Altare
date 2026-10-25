@@ -1,0 +1,35 @@
+name: Validate Godot project
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/*.gd'
+      - '**/*.tscn'
+      - '**/*.tres'
+      - '**/*.godot'
+      - '.github/workflows/validate-godot.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Require Godot project
+        run: |
+          if [ ! -f project.godot ]; then
+            echo 'No project.godot found at repository root.'
+            echo 'Upload the complete Isla Eterna Godot project before running validation.'
+            exit 1
+          fi
+
+      - name: Download Godot 4.3 headless
+        run: |
+          curl -L --fail --retry 3 -o godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.3-stable_linux.x86_64
+
+      - name: Parse/import project headlessly
+        run: ./Godot_v4.3-stable_linux.x86_64 --headless --editor --path . --quit
