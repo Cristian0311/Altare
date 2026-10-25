@@ -1,4 +1,4 @@
-name: Validate Godot project
+name: Validate and build Godot dedicated server
 
 on:
   workflow_dispatch:
@@ -7,25 +7,75 @@ on:
       - 'IslaEterna_Godot4/**'
       - '.github/workflows/validate-godot.yml'
 
+permissions:
+  contents: read
+
 jobs:
-  validate:
+  validate-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Require Godot project
+      - name: Verify project files
         run: |
-          if [ ! -f IslaEterna_Godot4/project.godot ]; then
-            echo 'No project.godot found in IslaEterna_Godot4/.'
-            exit 1
-          fi
+          test -f IslaEterna_Godot4/project.godot
+          test -f IslaEterna_Godot4/scenes/main.tscn
+          test -f IslaEterna_Godot4/scripts/main.gd
+          test -f IslaEterna_Godot4/export_presets.cfg
 
-      - name: Download Godot 4.3 headless
+      - name: Download Godot 4.3 and export templates
         run: |
           curl -L --fail --retry 3 -o godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q godot.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
+          curl -L --fail --retry 3 -o export_templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
+          unzip -q export_templates.tpz -d export_templates
+          cp -a export_templates/templates/. "$HOME/.local/share/godot/export_templates/4.3.stable/"
 
-      - name: Parse/import project headlessly
+      - name: Import and parse project
         run: ./Godot_v4.3-stable_linux.x86_64 --headless --editor --path IslaEterna_Godot4 --quit
+
+      - name: Export Linux dedicated server
+        working-directory: IslaEterna_Godot4
+        run: |
+          mkdir -p build
+          ../Godot_v4.3-stable_linux.x86_64 --headless --path . --export-release "Linux Dedicated Server" build/IslaEternaServer.x86_64
+          test -s build/IslaEternaServer.x86_64
+          test -s build/IslaEternaServer.pck
+
+      - name: Package server
+        run: |
+          mkdir -p dist
+          cp IslaEterna_Godot4/build/IslaEternaServer.x86_64 dist/
+          cp IslaEterna_Godot4/build/IslaEternaServer.pck dist/
+          cat > dist/start-server.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd "$(dirname "$0")"
+          export SERVER_PORT="${SERVER_PORT:-7777}"
+          exec ./IslaEternaServer.x86_64 --headless -- --server
+          EOF
+          chmod +x dist/start-server.sh
+          cat > dist/README-ALTARE.txt <<'EOF'
+          Isla Eterna Online - Linux dedicated server
+          Built by GitHub Actions using Godot 4.3.
+          Startup command: ./start-server.sh
+          Default UDP port: 7777 (set SERVER_PORT to the UDP port allocated by the host).
+          IMPORTANT: This package requires a host/container that permits running a Linux executable
+          and receiving/sending UDP traffic. It will not run in a Node.js-only runtime that only
+          accepts JavaScript entrypoints. Confirm UDP support and the allocated port before deployment.
+          EOF
+
+      - name: Upload dedicated server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslaEterna-Linux-Dedicated-Server
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
