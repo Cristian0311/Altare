@@ -1,22 +1,22 @@
-# Isla Eterna Online — Altare deployment
+# Isla Eterna Online — Godot 4 / Altare
 
-This repository is being prepared to build and deploy the dedicated Godot server for Altare.
+El proyecto Godot se encuentra en `IslaEterna_Godot4/`. El workflow de GitHub Actions está preparado para importar el proyecto y generar un paquete Linux de servidor dedicado.
 
-## Current status
+## Estado real
+- Código fuente: subido a este repositorio.
+- Exportación Linux dedicada: automatizada en `.github/workflows/validate-godot.yml`, pendiente de confirmar con una ejecución exitosa.
+- Artefacto de servidor: se genera solo si el workflow termina correctamente.
+- Altare: el contenedor observado usa Node.js 20 y busca `index.js`; eso no arranca directamente una aplicación Godot.
+- Red: ENet usa UDP. Hay que confirmar con Altare que admite binarios Linux personalizados y UDP en el puerto asignado antes de cambiar el arranque.
 
-- Altare server: `th-bkk03.altare.global:25571`
-- Altare container currently uses Node.js 20 and its startup command expects `index.js`/TypeScript. That is not the Godot server and currently crashes with `Cannot find module './index.js'`.
-- The Godot source project is **not yet present in this repository**. Do not change Altare's startup command until the project and Linux server build are added and validated.
-- ENet requires UDP. The Altare assignment's protocol still needs confirmation; a hostname and port alone do not prove UDP is enabled.
+## Cómo continuar desde Android
+1. Abre la pestaña Actions de este repositorio: https://github.com/Cristian0311/Altare/actions
+2. Abre la ejecución más reciente de **Validate and build Godot dedicated server**.
+3. Si está en verde, descarga el artefacto `IslaEterna-Linux-Dedicated-Server` desde Artifacts.
+4. No cambies el comando de inicio de Altare hasta confirmar que acepta ejecutables Linux personalizados y tráfico UDP.
+5. Cuando el proveedor confirme UDP y el puerto asignado, configura `SERVER_PORT` con ese puerto y prueba una conexión real desde el cliente.
 
-## Safe deployment plan
+## Importante
+Este proyecto sigue siendo un prototipo multijugador, no un MMORPG completo. Compilar el servidor no implementa por sí solo cuentas, base de datos, combate, inventario, persistencia ni protección anti-trampas. No se afirmará que está desplegado hasta que el proceso arranque y un cliente conecte correctamente.
 
-1. Add the complete Godot project source (including `project.godot`, scenes, scripts, and any assets) to this repository.
-2. Validate the project with the matching Godot 4.x headless editor and resolve parse/import errors.
-3. Configure a reproducible Linux dedicated-server export and archive it as a build artifact.
-4. Confirm Altare supports a custom executable/start command and UDP on the assigned port.
-5. Upload the verified build, configure `SERVER_PORT=25571` only if Altare confirms that port is UDP, then inspect console logs and test a real client connection.
-
-## Important
-
-Do not commit passwords, SFTP credentials, tokens, or private keys. Do not treat a successful workflow or ZIP creation as proof that the server is running; the final validation is a successful Godot startup and ENet client connection.
+No subas contraseñas, tokens, claves privadas ni credenciales SFTP a GitHub.
