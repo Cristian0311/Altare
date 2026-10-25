@@ -1,9 +1,26 @@
 # Notas de despliegue Altare
 
-Este directorio contiene el código fuente de Godot, no un ejecutable Linux exportado.
+El proyecto Godot está en `IslaEterna_Godot4/`. GitHub Actions intenta importar/validar el proyecto y exportar un servidor Linux dedicado de Godot 4.3.
 
-El servidor lee la variable de entorno SERVER_PORT si existe y usa UDP 7777 como valor predeterminado. Para una prueba local: `godot --headless --path . -- --server`.
+## Compilación automática
+- Workflow: `.github/workflows/validate-godot.yml`
+- Se ejecuta al cambiar archivos del proyecto o manualmente desde GitHub Actions.
+- Si termina correctamente, publica el artefacto `IslaEterna-Linux-Dedicated-Server` con ejecutable, PCK, script de arranque y estas instrucciones.
+- Un commit en GitHub o la existencia del workflow no significa que la compilación haya pasado; hay que revisar el resultado real del workflow.
 
-Altare muestra actualmente un contenedor Node.js 20 y un comando de inicio que busca index.js/TypeScript; eso no ejecuta Godot. Se necesita un build Linux dedicado (ejecutable más recursos exportados o PCK, según la forma de exportación elegida). También debe confirmarse que el puerto asignado 25571 admite UDP. El hostname y puerto por sí solos no prueban que ENet sea compatible.
+## Altare: bloqueadores que faltan por confirmar
+Altare muestra un contenedor Node.js 20 y un comando de inicio que busca `index.js`/TypeScript; eso no ejecuta directamente el servidor Godot. Antes de cambiarlo, confirma en Altare que permite:
+1. Ejecutar un binario Linux personalizado (no solamente Node.js).
+2. Tráfico UDP entrante y saliente para ENet.
+3. Usar el puerto UDP asignado. El puerto mostrado previamente es `25571`, pero no debe configurarse como UDP hasta que el proveedor lo confirme.
 
-No subas credenciales, claves ni contraseñas al repositorio. No declares el despliegue exitoso hasta ver el servidor Godot arrancado y un cliente conectándose por ENet.
+El servidor usa la variable de entorno `SERVER_PORT`; si no está definida, usa UDP 7777. Cuando Altare confirme que el puerto 25571 admite UDP, configura `SERVER_PORT=25571` y utiliza el script `start-server.sh` incluido en el artefacto.
+
+## Verificación de despliegue
+1. Comprueba que el workflow terminó en verde y que el artefacto existe.
+2. Descarga el ZIP desde la sección Artifacts de la ejecución de GitHub Actions.
+3. Sube los archivos extraídos al servicio Altare solamente si permite binarios Linux personalizados.
+4. Arranca el proceso y revisa que la consola indique que el servidor está escuchando en el puerto configurado.
+5. Prueba desde un cliente Godot externo. El despliegue no se considera validado hasta que un cliente conecte por ENet/UDP.
+
+No subas contraseñas, tokens, claves privadas ni credenciales SFTP al repositorio.
