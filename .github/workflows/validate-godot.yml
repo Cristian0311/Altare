@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '**/*.gd'
-      - '**/*.tscn'
-      - '**/*.tres'
-      - '**/*.godot'
+      - 'IslaEterna_Godot4/**'
       - '.github/workflows/validate-godot.yml'
 
 jobs:
@@ -19,9 +16,8 @@ jobs:
 
       - name: Require Godot project
         run: |
-          if [ ! -f project.godot ]; then
-            echo 'No project.godot found at repository root.'
-            echo 'Upload the complete Isla Eterna Godot project before running validation.'
+          if [ ! -f IslaEterna_Godot4/project.godot ]; then
+            echo 'No project.godot found in IslaEterna_Godot4/.'
             exit 1
           fi
 
@@ -32,4 +28,4 @@ jobs:
           chmod +x Godot_v4.3-stable_linux.x86_64
 
       - name: Parse/import project headlessly
-        run: ./Godot_v4.3-stable_linux.x86_64 --headless --editor --path . --quit
+        run: ./Godot_v4.3-stable_linux.x86_64 --headless --editor --path IslaEterna_Godot4 --quit
